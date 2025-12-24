@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>SACRED RITUAL | 数字化灵性实验室 V16.35</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --gold: #d4af37; --p-glow: rgba(142, 68, 173, 0.4); }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100vh; 
+            background: radial-gradient(ellipse at center, #3a0066 0%, #050010 100%);
+            color: #fff; font-family: 'Playfair Display', serif; 
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        #particle-canvas { position: fixed; top: 0; left: 0; z-index: 9999; pointer-events: none; }
+
+        #ui-wrapper { position: relative; z-index: 100; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 900px; }
+
+        .nav-tabs { display: flex; gap: 50px; margin-bottom: 35px; }
+        .tab { cursor: pointer; opacity: 0.4; letter-spacing: 5px; font-size: 18px; transition: 0.5s; font-family: 'Cinzel'; border-bottom: 2px solid transparent; padding-bottom: 8px; }
+        .tab.active { opacity: 1; color: var(--gold); border-bottom: 2px solid var(--gold); text-shadow: 0 0 10px var(--gold); }
+
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); 
+            border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 50px; 
+            padding: 70px 90px; width: 95%; max-width: 850px; 
+            text-align: center; box-shadow: 0 0 60px rgba(0, 0, 0, 0.7); 
+        }
+        h1 { font-family: 'Cinzel'; letter-spacing: 12px; color: var(--gold); font-size: 42px; margin-bottom: 40px; }
+        textarea, input { width: 100%; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; color: #fff; padding: 25px; margin-bottom: 25px; box-sizing: border-box; font-size: 22px; outline: none; }
+        textarea { height: 240px; resize: none; }
+
+        .input-label { color: var(--gold); font-family: 'Cinzel'; letter-spacing: 3px; font-size: 18px; margin-bottom: 15px; text-align: left; padding-left: 10px; }
+
+        #scan-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); z-index: 500; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .scan-circle { 
+            width: 280px; height: 280px; border: 3px solid var(--gold); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; 
+            background: rgba(212, 175, 55, 0.02); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .scan-circle.pressing { transform: scale(0.88); box-shadow: inset 0 0 60px var(--gold), 0 0 40px var(--gold); background: rgba(212, 175, 55, 0.15); }
+        .scan-wave { position: absolute; width: 100%; height: 12px; background: linear-gradient(to bottom, transparent, var(--gold), transparent); top: -20%; opacity: 0; }
+        .scanning .scan-wave { animation: scanMove 2s infinite linear; opacity: 0.6; }
+        @keyframes scanMove { 0% { top: -20%; } 100% { top: 110%; } }
+        .progress-container { width: 300px; height: 4px; background: rgba(255,255,255,0.1); margin-top: 40px; border-radius: 10px; }
+        #progress-fill { width: 0%; height: 100%; background: var(--gold); box-shadow: 0 0 15px var(--gold); transition: 0.1s; }
+
+        .audio-mixer { 
+            position: fixed; bottom: 40px; left: 40px; 
+            background: rgba(0, 0, 0, 0.6); padding: 25px; 
+            border-radius: 25px; border: 1px solid var(--gold); 
+            backdrop-filter: blur(10px); z-index: 300; 
+            display: none; width: 220px; 
+        }
+        .audio-mixer label { font-size: 10px; color: var(--gold); display: block; margin-bottom: 5px; font-family: 'Cinzel'; letter-spacing: 2px; }
+        .audio-mixer input { accent-color: var(--gold); width: 100%; margin-bottom: 15px; cursor: pointer; }
+
+        #result-view { display: none; width: 100%; flex-direction: column; align-items: center; }
+        #stage-3d { width: 500px; height: 500px; transform-style: preserve-3d; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 20px; }
+        @keyframes rotate3d { from { transform: perspective(2000px) rotateY(0deg); } to { transform: perspective(2000px) rotateY(360deg); } }
+        .bead-wrap { position: absolute; width: 140px; height: 140px; transform-style: preserve-3d; }
+        .bead-content { width: 100%; height: 100%; clip-path: circle(46%); object-fit: cover; filter: drop-shadow(0 0 40px var(--p-glow)); }
+
+        .prophet-box { background: rgba(142,68,173,0.1); border-left: 6px solid var(--gold); padding: 45px; margin: 30px 0; text-align: left; font-size: 22px; line-height: 2; border-radius: 0 25px 25px 0; max-width: 900px; backdrop-filter: blur(5px); }
+        .main-btn { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--gold); color: var(--gold); padding: 18px 55px; letter-spacing: 6px; cursor: pointer; transition: 0.5s; font-family: 'Cinzel'; font-size: 18px; text-transform: uppercase; margin: 10px; }
+        .main-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 30px var(--gold); }
+
+        #poster-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); z-index: 3000; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        #poster-preview-img { max-width: 90%; max-height: 70vh; border: 2px solid var(--gold); box-shadow: 0 0 50px var(--gold); }
+        
+        /* 海报截图舞台 */
+        #capture-stage { position: absolute; left: -9999px; width: 600px; padding: 80px 60px; background: #050010; color: #fff; text-align: center; border: 4px solid var(--gold); }
+        #p-img-box { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 50px; }
+    </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="particle-canvas"></canvas>
+
+<div class="audio-mixer" id="audio-ui">
+    <label>AMBIENT WAVES</label>
+    <input type="range" id="vol-waves" min="0" max="0.5" step="0.01" value="0.1">
+    <label>CORE FREQUENCY</label>
+    <input type="range" id="vol-freq" min="0" max="0.3" step="0.01" value="0.08">
+</div>
+
+<div id="ui-wrapper">
+    <div class="nav-tabs" id="nav-tabs">
+        <div class="tab active" onclick="switchMode('intention', this)">水晶定制</div>
+        <div class="tab" onclick="switchMode('destiny', this)">今日水晶</div>
+    </div>
+
+    <div class="glass-panel" id="ui-main">
+        <div id="mode-intention">
+            <h1>INTENTION</h1>
+            <textarea id="wish-input" placeholder="倾诉您此时的困惑或愿望..."></textarea>
+            <button class="main-btn" onclick="prepareScan('intention')">进行专属疗愈水晶定制</button>
+        </div>
+        <div id="mode-destiny" style="display:none;">
+            <h1>DAILY RESONANCE</h1>
+            <div class="input-label">请填写你的出生日期</div>
+            <input type="date" id="birth-date">
+            <input type="text" id="location-input" placeholder="输入当前位置 (如: 杭州)">
+            <button class="main-btn" onclick="prepareScan('destiny')">进行专属疗愈水晶定制</button>
+        </div>
+    </div>
+
+    <div id="result-view">
+        <div id="stage-3d"></div>
+        <div style="text-align:center;">
+            <h2 id="res-title" style="font-family:'Cinzel'; letter-spacing:15px; color:var(--gold); font-size:52px; margin:0; text-shadow: 0 0 30px var(--gold);"></h2>
+            <div class="prophet-box" id="res-desc"></div>
+            <p id="res-blessing" style="color:var(--gold); font-style:italic; font-size:24px; letter-spacing:8px; margin-top:30px;"></p>
+            <div style="margin-top:50px;">
+                <button class="main-btn" onclick="location.reload()">RESTART</button>
+                <button class="main-btn" style="border-color:#fff; color:#fff;" onclick="generatePosterFlow()">生成分享海报</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="scan-container">
+    <div id="scan-target" class="scan-circle" onmousedown="startPress()" onmouseup="stopPress()" ontouchstart="startPress()" ontouchend="stopPress()">
+        <div class="scan-wave"></div>
+        <p id="scan-prompt" style="font-family:'Cinzel'; color:var(--gold); font-size:20px; letter-spacing:5px; pointer-events:none;">SYNCING</p>
+    </div>
+    <p style="margin-top:40px; letter-spacing:8px; opacity:0.8; font-size: 24px;">磁场校准中，请保持按压状态...</p>
+    <div class="progress-container"><div id="progress-fill"></div></div>
+</div>
+
+<div id="poster-overlay" onclick="if(event.target==this)this.style.display='none'">
+    <div id="poster-img-container"></div>
+    <div style="margin-top:25px; display: flex; gap: 20px;">
+        <button class="main-btn" id="real-download-btn" style="background:var(--gold); color:#000; padding: 12px 35px; font-size: 14px;">保存到本地</button>
+        <button class="main-btn" style="border-color:#fff; color:#fff; padding: 12px 35px; font-size: 14px;" onclick="document.getElementById('poster-overlay').style.display='none'">返回</button>
+    </div>
+</div>
+
+<div id="capture-stage">
+    <div id="p-img-box"></div>
+    <h1 id="p-title" style="font-family:'Cinzel'; color:#d4af37; font-size:42px;"></h1>
+    <p id="p-desc" style="font-size:20px; line-height:1.8; text-align:left; padding:0 30px; color:#fff;"></p>
+    <div style="margin:40px auto; background:#fff; padding:8px; width:110px; height:110px; display:inline-block;">
+        <img src="qrcode_chrome.png" id="poster-qr-static" style="width:110px; height:110px; display:block;">
+    </div>
+</div>
+
+<audio id="audio-waves" loop src="https://www.soundjay.com/nature/ocean-wave-1.mp3"></audio>
+
+<script>
+    // 1. 背景引擎
+    const bgCanvas = document.getElementById('bg-canvas'), bgCtx = bgCanvas.getContext('2d');
+    const pCanvas = document.getElementById('particle-canvas'), pCtx = pCanvas.getContext('2d');
+    function init() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight; }
+    window.addEventListener('resize', init); init();
+
+    class BgStar {
+        constructor() {
+            this.x = Math.random() * bgCanvas.width; this.y = Math.random() * bgCanvas.height;
+            this.size = Math.random() * 2 + 0.5; this.speed = Math.random() * 0.5 + 0.2; this.opacity = Math.random() * 0.8 + 0.2;
+        }
+        update() { this.y -= this.speed; if (this.y < 0) this.y = bgCanvas.height; }
+        draw() { bgCtx.fillStyle = `rgba(255, 230, 180, ${this.opacity})`; bgCtx.beginPath(); bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2); bgCtx.fill(); }
+    }
+    let bgStars = []; for (let i = 0; i < 250; i++) bgStars.push(new BgStar());
+    function animateBg() { bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height); bgStars.forEach(s => { s.update(); s.draw(); }); requestAnimationFrame(animateBg); }
+    animateBg();
+
+    let mParticles = [];
+    window.addEventListener('mousemove', (e) => { for(let i=0; i<3; i++) mParticles.push({ x:e.clientX, y:e.clientY, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3, age:1 }); });
+    function updateMParticles() {
+        pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+        mParticles.forEach((p,i) => {
+            p.x += p.vx; p.y += p.vy; p.age -= 0.02;
+            pCtx.fillStyle = `rgba(212,175,55,${p.age})`; pCtx.beginPath(); pCtx.arc(p.x, p.y, 3, 0, Math.PI*2); pCtx.fill();
+            if(p.age <= 0) mParticles.splice(i,1);
+        });
+        requestAnimationFrame(updateMParticles);
+    }
+    updateMParticles();
+
+    // 2. 核心逻辑
+    const crystalLib = [
+        { id:'clear', name:'白水晶', img:'white.png', vid:'white.mp4', freq:963, desc:'正在提高认知清晰度，清理杂乱思维碎片，重塑专注边界。', bless:'心如明镜，万物自清。', keys:['学','专注','乱','烦','注意力','跑神'] },
+        { id:'aqua', name:'海蓝宝', img:'blue.png', vid:'blue.mp4', freq:741, desc:'正在优化沟通效率，消解表达阻碍，顺畅心声表达。', bless:'温柔诉说，必有回响。', keys:['说','谈','沟通','笨','聪明','智慧','表达','讲'] },
+        { id:'green', name:'绿幽灵', img:'green.png', vid:'green.mp4', freq:528, desc:'正在焕发事业生机，缓解长期倦怠，激发工作创造力。', bless:'丰盛之源，由内而发。', keys:['事','工作','忙','上司','下属','员工','就业'] },
+        { id:'sun', name:'太阳石', img:'orange.png', vid:'orange.mp4', freq:417, desc:'正在唤醒自信磁场，提升自我效能，激活自发性动力。', bless:'你本身即光，无惧阴影。', keys:['怕','自信','阳光','担心','胆小','加油','信心','自卑'] },
+        { id:'purple', name:'紫水晶', img:'purple.png', vid:'purple.mp4', freq:852, desc:'正在开启深度治愈模式，引导大脑进入休憩状态，进行沉浸式疗愈。', bless:'静止之中，自有新生。', keys:['累','压','睡','困','疲惫','焦虑','睡眠','睡觉','紧张'] },
+        { id:'yellow', name:'黄水晶', img:'yellow.png', vid:'yellow.mp4', freq:639, desc:'正在疏通财富通道，提升行动回报率，激活机遇捕捉力。', bless:'坚定信念，运势自转。', keys:['财','决策','运','钱','穷','富'] },
+        { id:'black', name:'黑曜石', img:'black.png', vid:'black.mp4', freq:396, desc:'正在开启防御机制，屏蔽负面能量干扰，维护场域纯净。', bless:'扎根大地，守护内核。', keys:['烦','黑','盾','坚强','怕','小人','坏人','害'] }
+    ];
+
+    let audioCtx, osc, gainNode, currentSelected = [], pressTimer, progress = 0;
+
+    function switchMode(mode, el) { 
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); 
+        document.getElementById('mode-intention').style.display = (mode === 'intention' ? 'block' : 'none');
+        document.getElementById('mode-destiny').style.display = (mode === 'destiny' ? 'block' : 'none');
+        el.classList.add('active'); 
+    }
+
+    function prepareScan(mode) {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        document.getElementById('audio-waves').play();
+        let matches = [];
+        if(mode === 'intention') {
+            const val = document.getElementById('wish-input').value;
+            crystalLib.forEach(c => { if(c.keys.some(k => val.includes(k))) matches.push(c); });
+        } else {
+            const bday = document.getElementById('birth-date').value || "1995-01-01";
+            matches.push(crystalLib[bday.length % 7]);
+        }
+        if(matches.length === 0) matches.push(crystalLib[0]);
+        currentSelected = matches;
+        document.getElementById('nav-tabs').style.display = 'none';
+        document.getElementById('ui-main').style.display = 'none';
+        document.getElementById('scan-container').style.display = 'flex';
+    }
+
+    function startPress() { 
+        const target = document.getElementById('scan-target');
+        target.classList.add('pressing'); target.classList.add('scanning');
+        document.getElementById('scan-prompt').innerText = "SYNCING";
+        pressTimer = setInterval(() => { 
+            progress += 2; document.getElementById('progress-fill').style.width = progress + "%"; 
+            if(progress >= 100) { clearInterval(pressTimer); enterResult(); } 
+        }, 50); 
+    }
+    function stopPress() { 
+        const target = document.getElementById('scan-target');
+        target.classList.remove('pressing'); target.classList.remove('scanning');
+        document.getElementById('scan-prompt').innerText = "ALIGNING";
+        clearInterval(pressTimer); progress = 0; document.getElementById('progress-fill').style.width = "0%"; 
+    }
+    
+    function enterResult() { 
+        document.getElementById('scan-container').style.display = 'none'; 
+        document.getElementById('audio-ui').style.display = 'block'; 
+        showFinalResult(currentSelected); 
+    }
+
+    function showFinalResult(items) {
+        document.getElementById('result-view').style.display = 'flex';
+        const stage = document.getElementById('stage-3d');
+        const isBracelet = items.length > 1;
+        document.getElementById('res-title').innerText = isBracelet ? "ENERGY FORMULA" : items[0].name;
+        document.getElementById('res-desc').innerText = items.map(i => i.desc).join(' ');
+        document.getElementById('res-blessing').innerText = items[0].bless;
+        stage.innerHTML = '';
+        if(!isBracelet) {
+            stage.style.animation = 'none'; 
+            const video = document.createElement('video'); video.src = items[0].vid; video.className = 'bead-content';
+            video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
+            video.style.transform = 'scale(1)'; stage.appendChild(video);
+        } else {
+            stage.style.animation = 'rotate3d 40s linear infinite';
+            for (let i = 0; i < 12; i++) {
+                const data = items[i % items.length];
+                const wrap = document.createElement('div'); wrap.className = 'bead-wrap';
+                const img = document.createElement('img'); img.src = data.img; img.className = 'bead-content';
+                const angle = (i / 12) * 360; wrap.style.transform = `rotateY(${angle}deg) translateZ(260px)`;
+                wrap.appendChild(img); stage.appendChild(wrap);
+            }
+        }
+        if(osc) osc.stop();
+        osc = audioCtx.createOscillator(); gainNode = audioCtx.createGain();
+        osc.frequency.value = items[0].freq; gainNode.gain.value = 0.08;
+        osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start();
+    }
+
+    document.getElementById('vol-waves').oninput = (e) => document.getElementById('audio-waves').volume = e.target.value;
+    document.getElementById('vol-freq').oninput = (e) => { if(gainNode) gainNode.gain.value = e.target.value; };
+
+    // 🚀 海报合成核心：彻底移除动态生成，使用预加载静态图
+    async function generatePosterFlow() {
+        const stage = document.getElementById('capture-stage'), pImgBox = document.getElementById('p-img-box');
+        document.getElementById('p-title').innerText = document.getElementById('res-title').innerText;
+        document.getElementById('p-desc').innerText = document.getElementById('res-desc').innerText;
+        
+        pImgBox.innerHTML = '';
+        const uniqueItems = [...new Set(currentSelected)];
+        uniqueItems.forEach(item => {
+            const img = document.createElement('img');
+            img.src = item.img;
+            const size = uniqueItems.length > 1 ? "140px" : "240px";
+            img.style.width = size; img.style.height = size;
+            img.style.clipPath = "circle(46%)";
+            img.style.filter = "drop-shadow(0 0 20px #d4af37)";
+            pImgBox.appendChild(img);
+        });
+
+        document.getElementById('poster-overlay').style.display = 'flex';
+        
+        // 增加延迟至 1.2秒，确保本地图片渲染到内存
+        setTimeout(async () => {
+            try {
+                const canvas = await html2canvas(stage, { 
+                    backgroundColor: '#050010', 
+                    scale: 2,
+                    useCORS: true,      // 关键配置
+                    allowTaint: false,  // 配合 CORS 解决跨域/本地权限
+                    logging: false
+                });
+                
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('poster-img-container').innerHTML = `<img id="poster-preview-img" src="${url}">`;
+                    document.getElementById('real-download-btn').onclick = () => { 
+                        const link = document.createElement('a'); 
+                        link.href = url; 
+                        link.download = 'Sacred_Prescription.png'; 
+                        link.click(); 
+                    };
+                }, 'image/png');
+            } catch (err) {
+                console.error("海报合成失败:", err);
+                alert("合成失败，请尝试在浏览器中刷新页面再次操作。");
+            }
+        }, 1200);
+    }
+</script>
+</body>
+</html>
